@@ -1,49 +1,50 @@
-import { DeviceTypes } from '@project-chip/matter-node.js/device';
+import { DeviceTypes, logEndpoint, BooleanState } from 'matterbridge';
 
-import { Matterbridge, MatterbridgeDevice, MatterbridgeAccessoryPlatform } from '../../matterbridge/dist/index.js';
+import { Matterbridge, MatterbridgeDevice, MatterbridgeAccessoryPlatform, MatterHistory } from 'matterbridge';
 import { AnsiLogger } from 'node-ansi-logger';
-import { WindowCovering, WindowCoveringCluster } from '@project-chip/matter-node.js/cluster';
 
-export class ExampleMatterbridgeAccessoryPlatform extends MatterbridgeAccessoryPlatform {
+export class EveDoorPlatform extends MatterbridgeAccessoryPlatform {
   constructor(matterbridge: Matterbridge, log: AnsiLogger) {
     super(matterbridge, log);
   }
 
-  override onStartAccessoryPlatform(): void {
-    this.log.info('onStartAccessoryPlatform called');
+  override async onStart(reason?: string) {
+    this.log.info('onStart called with reason:', reason ?? 'none');
 
-    const cover = new MatterbridgeDevice(DeviceTypes.WINDOW_COVERING);
-    cover.createDefaultIdentifyClusterServer();
-    cover.createDefaultBasicInformationClusterServer('Device1', 'Device1 0x9010880304', 0xfff1, 'Luligu', 0x0001, 'Device1');
-    cover.createDefaultWindowCoveringClusterServer(10000);
-    this.registerDevice(cover);
+    const history = new MatterHistory(this.log, 'Eve door', { filePath: this.matterbridge.matterbridgeDirectory });
 
-    cover.addCommandHandler('identify', async ({ request: { identifyTime } }) => {
+    const door = new MatterbridgeDevice(DeviceTypes.CONTACT_SENSOR);
+    door.createDefaultIdentifyClusterServer();
+    door.createDefaultBasicInformationClusterServer('Eve door', '0x88030475', 4874, 'Eve Systems', 77, 'Eve Door 20EBN9901', 1144, '1.2.8');
+    door.createDefaultPowerSourceReplaceableBatteryClusterServer(75);
+    door.createDefaultBooleanStateClusterServer(true);
+    door.createDoorEveHistoryClusterServer(history, this.log);
+    history.autoPilot(door);
+
+    await this.registerDevice(door);
+
+    door.addCommandHandler('identify', async ({ request: { identifyTime } }) => {
       this.log.warn(`Command identify called identifyTime:${identifyTime}`);
+      logEndpoint(door);
+      history.logHistory(false);
     });
 
-    cover.addCommandHandler('goToLiftPercentage', async ({ request: { liftPercent100thsValue } }) => {
-      this.log.warn(`Command goToLiftPercentage called liftPercent100thsValue:${liftPercent100thsValue}`);
-    });
-
-    setInterval(() => {
-      const coverCluster = cover.getClusterServer(WindowCoveringCluster.with(WindowCovering.Feature.Lift, WindowCovering.Feature.PositionAwareLift));
-      if (coverCluster && coverCluster.getCurrentPositionLiftPercent100thsAttribute) {
-        let position = coverCluster.getCurrentPositionLiftPercent100thsAttribute()! + 1000;
-        position = position > 10000 ? 0 : position;
-        coverCluster.setTargetPositionLiftPercent100thsAttribute(position);
-        coverCluster.setCurrentPositionLiftPercent100thsAttribute(position);
-        coverCluster.setOperationalStatusAttribute({
-          global: WindowCovering.MovementStatus.Stopped,
-          lift: WindowCovering.MovementStatus.Stopped,
-          tilt: WindowCovering.MovementStatus.Stopped,
-        });
-        this.log.warn(`Set liftPercent100thsValue to ${position}`);
-      }
-    }, 10 * 1000);
+    setInterval(
+      () => {
+        let contact = door.getClusterServerById(BooleanState.Cluster.id)?.getStateValueAttribute();
+        contact = !contact;
+        door.getClusterServerById(BooleanState.Cluster.id)?.setStateValueAttribute(contact);
+        door.getClusterServerById(BooleanState.Cluster.id)?.triggerStateChangeEvent({ stateValue: contact });
+        if (contact === false) history.addToTimesOpened();
+        history.setLastEvent();
+        history.addEntry({ time: history.now(), contact: contact === true ? 0 : 1 });
+        this.log.info(`Set contact to ${contact}`);
+      },
+      60 * 1000 - 500,
+    );
   }
 
-  override onShutdown(): void {
-    this.log.info('onShutdown called');
+  override async onShutdown(reason?: string) {
+    this.log.info('onShutdown called with reason:', reason ?? 'none');
   }
 }
