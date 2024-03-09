@@ -16,8 +16,12 @@ export class EveDoorPlatform extends MatterbridgeAccessoryPlatform {
     const door = new MatterbridgeDevice(DeviceTypes.CONTACT_SENSOR);
     door.createDefaultIdentifyClusterServer();
     door.createDefaultBasicInformationClusterServer('Eve door', '0x88030475', 4874, 'Eve Systems', 77, 'Eve Door 20EBN9901', 1144, '1.2.8');
-    door.createDefaultPowerSourceReplaceableBatteryClusterServer(75);
     door.createDefaultBooleanStateClusterServer(true);
+
+    door.createDefaultPowerSourceReplaceableBatteryClusterServer(75);
+    door.createDefaultPowerSourceConfigurationClusterServer(1);
+
+    // Add the EveHistory cluster to the device as last cluster!
     door.createDoorEveHistoryClusterServer(history, this.log);
     history.autoPilot(door);
 
