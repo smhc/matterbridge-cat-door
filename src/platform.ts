@@ -1,9 +1,13 @@
-import { DeviceTypes, logEndpoint, BooleanState } from 'matterbridge';
+import { DeviceTypes, BooleanState } from 'matterbridge';
 
 import { Matterbridge, MatterbridgeDevice, MatterbridgeAccessoryPlatform, MatterHistory } from 'matterbridge';
 import { AnsiLogger } from 'node-ansi-logger';
 
 export class EveDoorPlatform extends MatterbridgeAccessoryPlatform {
+  door: MatterbridgeDevice | undefined;
+  history: MatterHistory | undefined;
+  interval: NodeJS.Timeout | undefined;
+
   constructor(matterbridge: Matterbridge, log: AnsiLogger) {
     super(matterbridge, log);
   }
@@ -11,44 +15,49 @@ export class EveDoorPlatform extends MatterbridgeAccessoryPlatform {
   override async onStart(reason?: string) {
     this.log.info('onStart called with reason:', reason ?? 'none');
 
-    const history = new MatterHistory(this.log, 'Eve door', { filePath: this.matterbridge.matterbridgeDirectory });
+    this.history = new MatterHistory(this.log, 'Eve door', { filePath: this.matterbridge.matterbridgeDirectory });
 
-    const door = new MatterbridgeDevice(DeviceTypes.CONTACT_SENSOR);
-    door.createDefaultIdentifyClusterServer();
-    door.createDefaultBasicInformationClusterServer('Eve door', '0x88030475', 4874, 'Eve Systems', 77, 'Eve Door 20EBN9901', 1144, '1.2.8');
-    door.createDefaultBooleanStateClusterServer(true);
+    this.door = new MatterbridgeDevice(DeviceTypes.CONTACT_SENSOR);
+    this.door.createDefaultIdentifyClusterServer();
+    this.door.createDefaultBasicInformationClusterServer('Eve door', '0x88030475', 4874, 'Eve Systems', 77, 'Eve Door 20EBN9901', 1144, '1.2.8');
+    this.door.createDefaultBooleanStateClusterServer(true);
 
-    door.createDefaultPowerSourceReplaceableBatteryClusterServer(75);
-    door.createDefaultPowerSourceConfigurationClusterServer(1);
+    this.door.createDefaultPowerSourceReplaceableBatteryClusterServer(75);
+    this.door.createDefaultPowerSourceConfigurationClusterServer(1);
 
     // Add the EveHistory cluster to the device as last cluster!
-    door.createDoorEveHistoryClusterServer(history, this.log);
-    history.autoPilot(door);
+    this.door.createDoorEveHistoryClusterServer(this.history, this.log);
+    this.history.autoPilot(this.door);
 
-    await this.registerDevice(door);
+    await this.registerDevice(this.door);
 
-    door.addCommandHandler('identify', async ({ request: { identifyTime } }) => {
+    this.door.addCommandHandler('identify', async ({ request: { identifyTime } }) => {
       this.log.warn(`Command identify called identifyTime:${identifyTime}`);
-      logEndpoint(door);
-      history.logHistory(false);
+      this.history?.logHistory(false);
     });
+  }
 
-    setInterval(
+  override async onConfigure() {
+    this.log.info('onConfigure called');
+
+    this.interval = setInterval(
       () => {
-        let contact = door.getClusterServerById(BooleanState.Cluster.id)?.getStateValueAttribute();
+        if (!this.door || !this.history) return;
+        let contact = this.door.getClusterServerById(BooleanState.Cluster.id)?.getStateValueAttribute();
         contact = !contact;
-        door.getClusterServerById(BooleanState.Cluster.id)?.setStateValueAttribute(contact);
-        door.getClusterServerById(BooleanState.Cluster.id)?.triggerStateChangeEvent({ stateValue: contact });
-        if (contact === false) history.addToTimesOpened();
-        history.setLastEvent();
-        history.addEntry({ time: history.now(), contact: contact === true ? 0 : 1 });
+        this.door.getClusterServerById(BooleanState.Cluster.id)?.setStateValueAttribute(contact);
+        this.door.getClusterServerById(BooleanState.Cluster.id)?.triggerStateChangeEvent({ stateValue: contact });
+        if (contact === false) this.history.addToTimesOpened();
+        this.history.setLastEvent();
+        this.history.addEntry({ time: this.history.now(), contact: contact === true ? 0 : 1 });
         this.log.info(`Set contact to ${contact}`);
       },
-      60 * 1000 - 500,
+      60 * 1000 + 100,
     );
   }
 
   override async onShutdown(reason?: string) {
     this.log.info('onShutdown called with reason:', reason ?? 'none');
+    clearInterval(this.interval);
   }
 }
