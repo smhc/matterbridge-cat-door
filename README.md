@@ -12,7 +12,7 @@
 
 This plugin shows how to use the Matter history and how to create passive device in matter.js.
 
-It create a contact sensor device that continuously changes state.
+It create a contact sensor device that continuously changes state and trigger the corresponding event.
 
 ## Prerequisites
 
