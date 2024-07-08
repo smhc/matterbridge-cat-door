@@ -1,4 +1,4 @@
-import { DeviceTypes, BooleanState, PlatformConfig, Matterbridge, MatterbridgeDevice, MatterbridgeAccessoryPlatform } from 'matterbridge';
+import { DeviceTypes, BooleanState, PlatformConfig, Matterbridge, MatterbridgeDevice, MatterbridgeAccessoryPlatform, powerSource } from 'matterbridge';
 import { MatterHistory } from 'matterbridge/history';
 import { AnsiLogger } from 'matterbridge/logger';
 
@@ -21,11 +21,10 @@ export class EveDoorPlatform extends MatterbridgeAccessoryPlatform {
     this.door.createDefaultBasicInformationClusterServer('Eve door', '0x88030475', 4874, 'Eve Systems', 77, 'Eve Door 20EBN9901', 1144, '1.2.8');
     this.door.createDefaultBooleanStateClusterServer(true);
 
+    this.door.addDeviceType(powerSource);
     this.door.createDefaultPowerSourceReplaceableBatteryClusterServer(75);
-    // this.door.createDefaultPowerSourceConfigurationClusterServer(1);
 
     // Add the EveHistory cluster to the device as last cluster!
-    // this.door.createDoorEveHistoryClusterServer(this.history, this.log);
     this.history.createDoorEveHistoryClusterServer(this.door, this.log);
     this.history.autoPilot(this.door);
 
