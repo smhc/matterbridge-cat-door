@@ -35,7 +35,7 @@ jobs:
 
       - name: List, audit, fix outdated dependencies and build again
         run: |
-          npm uninstall -g matterbridge
+          npm uninstall matterbridge
           npm list --outdated
           npm audit || true  # ignore failures
           npm audit fix || true
