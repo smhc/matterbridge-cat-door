@@ -30,9 +30,6 @@ jobs:
       - name: Build the project
         run: npm run build
 
-      - name: Set release
-        run: echo "${{ github.event.release }}"
-        
       - name: Publish to npm
         run: npm publish
         env:
