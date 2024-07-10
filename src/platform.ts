@@ -24,7 +24,7 @@ export class EveDoorPlatform extends MatterbridgeAccessoryPlatform {
     this.door.addDeviceType(powerSource);
     this.door.createDefaultPowerSourceReplaceableBatteryClusterServer(75);
 
-    // Add the EveHistory cluster to the device as last cluster!
+    // Add the EveHistory cluster to the device as last cluster and call autoPilot
     this.history.createDoorEveHistoryClusterServer(this.door, this.log);
     this.history.autoPilot(this.door);
 
