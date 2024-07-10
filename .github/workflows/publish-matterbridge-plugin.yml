@@ -2,7 +2,7 @@ name: Publish to npm
 
 on:
   release:
-    types: [published]
+    types: [created]
 
 jobs:
   publish:
@@ -42,8 +42,6 @@ jobs:
             echo "Release is not from the main branch."
             echo "::set-output name=on_main_branch::false"
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to npm
         if: steps.check_branch.outputs.on_main_branch == 'true'
