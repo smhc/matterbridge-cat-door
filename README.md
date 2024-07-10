@@ -19,4 +19,3 @@ It create a virtual contact sensor device that continuously changes state and tr
 ### Matterbridge
 
 See the guidelines on [Matterbridge](https://github.com/Luligu/matterbridge/blob/main/README.md) for more information.
-
