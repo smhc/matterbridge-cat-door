@@ -41,5 +41,6 @@ jobs:
           npm audit fix || true
           npm list --outdated
           npm install -g matterbridge
+          npm install
           npm run build
 
