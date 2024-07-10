@@ -7,7 +7,6 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
   
     steps:
       - name: Checkout repository
@@ -31,7 +30,23 @@ jobs:
       - name: Build the project
         run: npm run build
  
+      - name: Check if the release was made from the main branch
+        id: check_branch
+        run: |
+          TAG_SHA=$(git rev-list -n 1 ${{ github.event.release.tag_name }})
+          BRANCHES=$(git branch -r --contains $TAG_SHA)
+          if [[ $BRANCHES == *"origin/main"* ]]; then
+            echo "Release is from the main branch."
+            echo "::set-output name=on_main_branch::true"
+          else
+            echo "Release is not from the main branch."
+            echo "::set-output name=on_main_branch::false"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish to npm
+        if: steps.check_branch.outputs.on_main_branch == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish
