@@ -17,6 +17,8 @@ This plugin shows how to use the Matter history and how to create a passive devi
 
 It create a virtual contact sensor device that continuously changes state and triggers the corresponding event.
 
+If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-eve-door and sponsoring it.
+
 ## Prerequisites
 
 ### Matterbridge
