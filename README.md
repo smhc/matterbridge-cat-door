@@ -2,6 +2,9 @@
 
 [![npm version](https://img.shields.io/npm/v/matterbridge-eve-door.svg)](https://www.npmjs.com/package/matterbridge-eve-door)
 [![npm downloads](https://img.shields.io/npm/dt/matterbridge-eve-door.svg)](https://www.npmjs.com/package/matterbridge-eve-door)
+[![Docker Version](https://img.shields.io/docker/v/luligu/matterbridge?label=docker%20version&sort=semver)](https://hub.docker.com/r/luligu/matterbridge)
+[![Docker Pulls](https://img.shields.io/docker/pulls/luligu/matterbridge.svg)](https://hub.docker.com/r/luligu/matterbridge)
+![Node.js CI](https://github.com/Luligu/matterbridge-eve-door/actions/workflows/build-matterbridge-plugin.yml/badge.svg)
 
 [![power by](https://img.shields.io/badge/powered%20by-matterbridge-blue)](https://www.npmjs.com/package/matterbridge)
 [![power by](https://img.shields.io/badge/powered%20by-matter--history-blue)](https://www.npmjs.com/package/matter-history)
