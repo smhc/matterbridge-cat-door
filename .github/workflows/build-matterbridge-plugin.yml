@@ -28,6 +28,9 @@ jobs:
         run: npm -v
             
       - name: Install matterbridge
+        run: npm cache clean --force
+
+      - name: Install matterbridge
         run: npm install -g matterbridge
 
       - name: Install dependencies
