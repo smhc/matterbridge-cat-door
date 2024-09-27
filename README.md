@@ -1,4 +1,4 @@
-# <img src="https://github.com/Luligu/matterbridge/blob/main/frontend/public/matterbridge%2064x64.png" alt="Matterbridge Logo" width="64px" height="64px">&nbsp;&nbsp;&nbsp;Matterbridge eve door with history
+# <img src="https://github.com/Luligu/matterbridge/blob/main/frontend/public/matterbridge%2064x64.png" alt="Matterbridge Logo" width="64px" height="64px">&nbsp;&nbsp;&nbsp;Matterbridge cat flap/door with history
 
 [![npm version](https://img.shields.io/npm/v/matterbridge-eve-door.svg)](https://www.npmjs.com/package/matterbridge-eve-door)
 [![npm downloads](https://img.shields.io/npm/dt/matterbridge-eve-door.svg)](https://www.npmjs.com/package/matterbridge-eve-door)
@@ -13,11 +13,10 @@
 
 ---
 
-This plugin shows how to use the Matter history and how to create a passive device in matter.js.
+This plugin is a fork of https://github.com/Luligu/matterbridge-eve-door to monitor a MQTT topic and report the
+status as a matter contact sensor.
 
-It creates a virtual contact sensor device that continuously changes state and triggers the corresponding event.
-
-If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-eve-door and sponsoring it.
+It creates a virtual contact sensor device that subscribes to catflap/lockstatus and reflects the corresponding message.
 
 ## Prerequisites
 

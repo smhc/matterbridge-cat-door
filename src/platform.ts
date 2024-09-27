@@ -1,25 +1,32 @@
+import mqtt from 'mqtt';
 import { DeviceTypes, BooleanState, PlatformConfig, Matterbridge, MatterbridgeDevice, MatterbridgeAccessoryPlatform, powerSource } from 'matterbridge';
 import { MatterHistory } from 'matterbridge/history';
 import { AnsiLogger } from 'matterbridge/logger';
 
+const brokerUrl = 'mqtt://192.168.1.118';
+const topic = 'catflap/lockstatus';
+
 export class EveDoorPlatform extends MatterbridgeAccessoryPlatform {
   door: MatterbridgeDevice | undefined;
   history: MatterHistory | undefined;
-  interval: NodeJS.Timeout | undefined;
+
+  //client: mqtt.MqttClient | undefined;
+  client: any;
 
   constructor(matterbridge: Matterbridge, log: AnsiLogger, config: PlatformConfig) {
     super(matterbridge, log, config);
     this.log.info('Initializing platform:', this.config.name);
+    this.client = undefined;
   }
 
   override async onStart(reason?: string) {
     this.log.info('onStart called with reason:', reason ?? 'none');
 
-    this.history = new MatterHistory(this.log, 'Eve door', { filePath: this.matterbridge.matterbridgeDirectory });
+    this.history = new MatterHistory(this.log, 'Cat door', { filePath: this.matterbridge.matterbridgeDirectory });
 
     this.door = new MatterbridgeDevice(DeviceTypes.CONTACT_SENSOR);
     this.door.createDefaultIdentifyClusterServer();
-    this.door.createDefaultBasicInformationClusterServer('Eve door', '0x88030475', 4874, 'Eve Systems', 77, 'Eve Door 20EBN9901', 1144, '1.2.8');
+    this.door.createDefaultBasicInformationClusterServer('Cat door', '0x88030475', 4874, 'Cat Systems', 77, 'Cat Door 20EBN9901', 1144, '1.2.8');
     this.door.createDefaultBooleanStateClusterServer(true);
 
     this.door.addDeviceType(powerSource);
@@ -40,26 +47,62 @@ export class EveDoorPlatform extends MatterbridgeAccessoryPlatform {
   override async onConfigure() {
     this.log.info('onConfigure called');
 
-    this.interval = setInterval(
-      () => {
-        if (!this.door || !this.history) return;
-        let contact = this.door.getClusterServerById(BooleanState.Cluster.id)?.getStateValueAttribute();
-        contact = !contact;
-        this.door.getClusterServerById(BooleanState.Cluster.id)?.setStateValueAttribute(contact);
-        this.door.getClusterServerById(BooleanState.Cluster.id)?.triggerStateChangeEvent({ stateValue: contact });
-        if (contact === false) this.history.addToTimesOpened();
-        this.history.setLastEvent();
-        this.history.addEntry({ time: this.history.now(), contact: contact === true ? 0 : 1 });
-        this.log.info(`Set contact to ${contact}`);
-      },
-      60 * 1000 + 100,
-    );
+    // Connect to the MQTT broker
+    this.client = mqtt.connect(brokerUrl);
+
+    if (this.client == null) {
+	this.log.error('Mqtt connect failed');
+	return;
+    }
+
+    // Handle connection events
+    this.client.on('connect', () => {
+	this.log.info(`Connected to MQTT broker at ${brokerUrl}`);
+	
+	// Subscribe to the topic
+	this.client.subscribe(topic, (err: Error) => {
+	    if (err) {
+		this.log.error(`Failed to subscribe to ${topic}:`, err);
+	    } else {
+		this.log.info(`Subscribed to ${topic}`);
+	    }
+	});
+
+	// Handle incoming messages
+	this.client.on('message', (topic: string, message: Buffer) => {
+	    if (!this.door || !this.history) return;
+	    // let contact = this.door.getClusterServerById(BooleanState.Cluster.id)?.getStateValueAttribute();
+	    let contact = false;
+	    this.log.info(`Message received: ${message.toString()}`);
+	    if (message.toString().startsWith('locked')) {
+		contact = true;
+	    }
+	    this.door.getClusterServerById(BooleanState.Cluster.id)?.setStateValueAttribute(contact);
+	    this.door.getClusterServerById(BooleanState.Cluster.id)?.triggerStateChangeEvent({ stateValue: contact });
+	    if (contact === false) this.history.addToTimesOpened();
+	    this.history.setLastEvent();
+	    this.history.addEntry({ time: this.history.now(), contact: contact === true ? 0 : 1 });
+	    this.log.info(`Set contact to ${contact}`);
+	});
+
+	// Handle errors
+	this.client.on('error', (err: Error) => {
+	    this.log.error('MQTT error:', err);
+	});
+
+	// Handle disconnection
+	this.client.on('close', () => {
+	    this.log.info('Disconnected from MQTT broker');
+	});
+    });
+
   }
 
   override async onShutdown(reason?: string) {
     this.log.info('onShutdown called with reason:', reason ?? 'none');
     await this.history?.close();
-    clearInterval(this.interval);
+    await this.client?.endAsync();
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
   }
+
 }
