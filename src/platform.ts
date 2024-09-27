@@ -10,8 +10,7 @@ export class EveDoorPlatform extends MatterbridgeAccessoryPlatform {
   door: MatterbridgeDevice | undefined;
   history: MatterHistory | undefined;
 
-  //client: mqtt.MqttClient | undefined;
-  client: any;
+  client: mqtt.MqttClient | undefined;
 
   constructor(matterbridge: Matterbridge, log: AnsiLogger, config: PlatformConfig) {
     super(matterbridge, log, config);
@@ -50,52 +49,56 @@ export class EveDoorPlatform extends MatterbridgeAccessoryPlatform {
     // Connect to the MQTT broker
     this.client = mqtt.connect(brokerUrl);
 
-    if (this.client == null) {
-	this.log.error('Mqtt connect failed');
-	return;
+    if (this.client === undefined || this.client === null) {
+      this.log.error('Mqtt connect failed');
+      return;
     }
 
     // Handle connection events
     this.client.on('connect', () => {
-	this.log.info(`Connected to MQTT broker at ${brokerUrl}`);
-	
-	// Subscribe to the topic
-	this.client.subscribe(topic, (err: Error) => {
-	    if (err) {
-		this.log.error(`Failed to subscribe to ${topic}:`, err);
-	    } else {
-		this.log.info(`Subscribed to ${topic}`);
-	    }
-	});
+      this.log.info(`Connected to MQTT broker at ${brokerUrl}`);
 
-	// Handle incoming messages
-	this.client.on('message', (topic: string, message: Buffer) => {
-	    if (!this.door || !this.history) return;
-	    // let contact = this.door.getClusterServerById(BooleanState.Cluster.id)?.getStateValueAttribute();
-	    let contact = false;
-	    this.log.info(`Message received: ${message.toString()}`);
-	    if (message.toString().startsWith('locked')) {
-		contact = true;
-	    }
-	    this.door.getClusterServerById(BooleanState.Cluster.id)?.setStateValueAttribute(contact);
-	    this.door.getClusterServerById(BooleanState.Cluster.id)?.triggerStateChangeEvent({ stateValue: contact });
-	    if (contact === false) this.history.addToTimesOpened();
-	    this.history.setLastEvent();
-	    this.history.addEntry({ time: this.history.now(), contact: contact === true ? 0 : 1 });
-	    this.log.info(`Set contact to ${contact}`);
-	});
+      if (this.client === undefined || this.client === null) {
+        this.log.error('Mqtt no client connection');
+        return;
+      }
 
-	// Handle errors
-	this.client.on('error', (err: Error) => {
-	    this.log.error('MQTT error:', err);
-	});
+      // Subscribe to the topic
+      this.client.subscribe(topic, (err: Error | null) => {
+        if (err) {
+          this.log.error(`Failed to subscribe to ${topic}:`, err);
+        } else {
+          this.log.info(`Subscribed to ${topic}`);
+        }
+      });
 
-	// Handle disconnection
-	this.client.on('close', () => {
-	    this.log.info('Disconnected from MQTT broker');
-	});
+      // Handle incoming messages
+      this.client.on('message', (topic: string, message: Buffer) => {
+        if (!this.door || !this.history) return;
+        // let contact = this.door.getClusterServerById(BooleanState.Cluster.id)?.getStateValueAttribute();
+        let contact = false;
+        this.log.info(`Mqtt message received: ${message.toString()}`);
+        if (message.toString().startsWith('locked')) {
+          contact = true;
+        }
+        this.door.getClusterServerById(BooleanState.Cluster.id)?.setStateValueAttribute(contact);
+        this.door.getClusterServerById(BooleanState.Cluster.id)?.triggerStateChangeEvent({ stateValue: contact });
+        if (contact === false) this.history.addToTimesOpened();
+        this.history.setLastEvent();
+        this.history.addEntry({ time: this.history.now(), contact: contact === true ? 0 : 1 });
+        this.log.info(`Set contact to ${contact}`);
+      });
+
+      // Handle errors
+      this.client.on('error', (err: Error) => {
+        this.log.error('Mqtt error:', err);
+      });
+
+      // Handle disconnection
+      this.client.on('close', () => {
+        this.log.info('Disconnected from mqtt broker');
+      });
     });
-
   }
 
   override async onShutdown(reason?: string) {
@@ -104,5 +107,4 @@ export class EveDoorPlatform extends MatterbridgeAccessoryPlatform {
     await this.client?.endAsync();
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
   }
-
 }
