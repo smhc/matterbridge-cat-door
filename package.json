@@ -1,7 +1,7 @@
 {
-  "name": "matterbridge-cat-door",
+  "name": "matterbridge-esp32sensor",
   "version": "1.0.8",
-  "description": "Matterbridge cat door with history",
+  "description": "Matterbridge esp32sensor door",
   "author": "https://github.com/smhc",
   "license": "MIT",
   "type": "module",
@@ -9,10 +9,10 @@
   "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/smhc/matterbridge-cat-door.git"
+    "url": "git+https://github.com/smhc/matterbridge-esp32sensor"
   },
   "bugs": {
-    "url": "https://github.com/smhc/matterbridge-cat-door/issues"
+    "url": "https://github.com/smhc/matterbridge-esp32sensor/issues"
   },
   "keywords": [
     "matterbridge",
